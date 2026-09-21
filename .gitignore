@@ -1,0 +1,24 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.venv/
+venv/
+
+# Runtime outputs
+data/raw/*.csv
+data/processed/*.csv
+data/predictions/*.csv
+artifacts/metrics/*.csv
+artifacts/metrics/*.txt
+artifacts/metrics/walk_forward/*.csv
+artifacts/plots/*.png
+artifacts/models/*
+!artifacts/models/.gitkeep
+!artifacts/metrics/.gitkeep
+!artifacts/plots/.gitkeep
+
+# OS / IDE
+.DS_Store
+.vscode/
+.ipynb_checkpoints/

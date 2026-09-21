@@ -1,0 +1,207 @@
+project:
+  name: GoldForecast-Hybrid System
+  version: submission-v1.0
+  description: Hybrid SARIMAX-LSTM system for international gold price forecasting and short-term trading simulation.
+  random_state: 42
+data:
+  start: '2015-01-01'
+  end: null
+  train_start: '2015-01-01'
+  train_end: '2023-12-31'
+  validation_start: '2024-01-01'
+  validation_end: '2024-12-31'
+  test_start: '2025-01-01'
+  test_end: null
+  target_col: target_log_return
+  yfinance:
+    gold_close: GC=F
+    usd_index: DX-Y.NYB
+    oil_price: CL=F
+    sp500: ^GSPC
+    bond_yield: ^TNX
+  fred:
+    fed_rate: FEDFUNDS
+    cpi: CPIAUCSL
+preprocessing:
+  ffill_limit: 5
+  min_non_missing_ratio: 0.8
+  drop_rows_with_missing_target: true
+  winsorize:
+    enabled: true
+    lower_q: 0.01
+    upper_q: 0.99
+  macro_alignment_note: CPI/Fed Rate are low-frequency variables aligned to daily
+    rows by limited forward fill. This is an approximation; release-date alignment
+    should be used in future work to avoid look-ahead/temporal inconsistency.
+  feature_selection:
+    enabled: true
+    top_k: 18
+    correlation_threshold: 0.95
+    rf_estimators: 300
+features:
+  price_lags:
+  - 1
+  - 2
+  - 3
+  - 5
+  - 10
+  - 20
+  macro_lags:
+  - 1
+  - 2
+  - 5
+  rolling_windows:
+  - 5
+  - 10
+  - 20
+  rsi_window: 14
+  ema_windows:
+  - 10
+  - 20
+models:
+  sarimax:
+    order:
+    - 1
+    - 0
+    - 1
+    seasonal_order:
+    - 1
+    - 0
+    - 1
+    - 5
+    use_exog: true
+    maxiter: 200
+    auto_order: false
+    auto_p_range:
+    - 0
+    - 1
+    - 2
+    auto_d_range:
+    - 0
+    - 1
+    auto_q_range:
+    - 0
+    - 1
+    - 2
+    auto_max_candidates: 18
+    auto_subset_rows: 600
+    auto_maxiter: 80
+    seasonal_note: Weekly trading-cycle seasonality used in the main experiment. For robustness, compare with [0,0,0,0] or [1,0,1,252] as optional experiments.
+  lstm:
+    seq_len: 20
+    epochs: 80
+    batch_size: 32
+    units: 32
+    dropout: 0.15
+    validation_split: 0.1
+  random_forest:
+    n_estimators: 400
+    max_depth: 8
+    min_samples_leaf: 3
+  ridge:
+    alpha: 1.0
+hybrid:
+  lstm_residual_weight: 1.0
+  optimize_alpha: false
+  alpha_candidates:
+  - 0.0
+  - 0.25
+  - 0.5
+  - 0.75
+  - 1.0
+  - 1.25
+  - 1.5
+  alpha_metric: mae
+trading:
+  strategy_mode: long_hold_trailing
+  threshold: 0.003
+  buy_threshold: 0.001
+  sell_threshold: -0.003
+  min_holding_days: 5
+  max_holding_days: 20
+  trailing_stop_percent: 0.08
+  transaction_cost: 0.0005
+  allow_short: false
+  include_daily_signal_metrics: true
+  risk_free_daily: 0.0
+  selection_metric: sharpe
+  selection_secondary_metric: total_return_percent
+  threshold_sweep:
+  - 0.001
+  - 0.002
+  - 0.003
+  - 0.005
+  - 0.007
+  - 0.01
+  buy_threshold_sweep:
+  - 0.001
+  - 0.002
+  - 0.003
+  - 0.005
+  - 0.007
+  sell_threshold_sweep:
+  - 0.0
+  - -0.001
+  - -0.002
+  - -0.003
+  - -0.005
+  min_holding_days_sweep:
+  - 1
+  - 3
+  - 5
+  - 10
+  - 20
+  allow_short_sweep:
+  - true
+  - false
+  strategy_modes_sweep:
+  - long_hold
+  - long_hold_trailing
+  - daily_signal
+  slippage: 0.0005
+  effective_cost_note: Backtest uses transaction_cost + slippage as total per-turnover cost; default effective cost = 0.0010 (0.10%).
+  cost_sensitivity:
+    enabled: false
+    effective_costs:
+    - 0.0005
+    - 0.001
+    - 0.0015
+    - 0.002
+outputs:
+  raw_data: data/raw/market_raw.csv
+  processed_data: data/processed/model_dataset.csv
+  predictions: data/predictions/predictions.csv
+  forecast_metrics: artifacts/metrics/forecast_metrics.csv
+  return_metrics: artifacts/metrics/return_metrics.csv
+  validation_predictions: data/predictions/validation_predictions.csv
+  test_predictions: data/predictions/test_predictions.csv
+  trading_metrics: artifacts/metrics/trading_metrics.csv
+  final_test_trading_metrics: artifacts/metrics/final_test_trading_metrics.csv
+  validation_sweep_metrics: artifacts/metrics/validation_sweep_metrics.csv
+  trading_sweep_metrics: artifacts/metrics/trading_sweep_metrics.csv
+  selected_trading_params: artifacts/metrics/selected_trading_params.csv
+  methodology_notes: artifacts/metrics/methodology_notes.txt
+  data_quality_report: artifacts/metrics/data_quality_report.csv
+  feature_importance: artifacts/metrics/feature_importance.csv
+  selected_features: artifacts/metrics/selected_features.txt
+  diagnostics: artifacts/metrics/sarimax_diagnostics.csv
+  lstm_backend: artifacts/metrics/lstm_backend.txt
+  forecast_plot: artifacts/plots/forecast_comparison.png
+  equity_plot: artifacts/plots/equity_curves.png
+  feature_importance_plot: artifacts/plots/feature_importance.png
+  pipeline_plot: artifacts/plots/pipeline_diagram.png
+  models_dir: artifacts/models
+  dm_test_results: artifacts/metrics/dm_test_results.csv
+  extended_trading_metrics: artifacts/metrics/extended_trading_metrics.csv
+  monthly_returns: artifacts/metrics/monthly_returns.csv
+  annual_stats: artifacts/metrics/annual_stats.csv
+  regime_metrics: artifacts/metrics/regime_metrics.csv
+  experiment_log: artifacts/metrics/experiment_log.csv
+  walk_forward_dir: artifacts/metrics/walk_forward
+  selected_alpha: artifacts/metrics/selected_alpha.csv
+walk_forward:
+  enabled: true
+  n_folds: 3
+  min_train_years: 5
+  test_months: 6
+  mode: expanding
